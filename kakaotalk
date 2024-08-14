@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2023 Ho Kim (ho.kim@ulagbulag.io). All rights reserved.
+# Copyright (c) 2023-2024 Ho Kim (ho.kim@ulagbulag.io). All rights reserved.
 # Use of this source code is governed by The Unlicense license that can be
 # found in the LICENSE file.
 
@@ -42,12 +42,20 @@ function _install_wine() {
     # Restore home directory
     export HOME="${HOME_ORIGIN}"
 
+    # Link the wine home directory to the wild
+    HOME_WINE="$(
+        find "${WINEPREFIX}/drive_c/users" \
+            -mindepth 1 -maxdepth 1 -type d -not -name 'Public'
+    )"
+    mv "${HOME_WINE}" "${HOME_WINE}-bak" || true
+    ln -sf "${HOME}" "${HOME_WINE}"
+
     # Create a desktop shortcut
     if [ -d "${HOME}/Desktop/" ]; then
         ICON_SRC='/usr/share/applications/kakaotalk.desktop'
         ICON_DST="${HOME}/Desktop/kakaotalk.desktop"
 
-        if [ ! -f "${ICON_DST}" ]; then
+        if [ -f "${ICON_SRC}" ] && [ ! -f "${ICON_DST}" ]; then
             mkdir -p "$(dirname "${ICON_DST}")"
             cp "${ICON_SRC}" "${ICON_DST}"
             chmod u+x "${ICON_DST}"
@@ -94,4 +102,4 @@ function main() {
 }
 
 # Execute main function
-main "$@" || exit 1
+main "$@"

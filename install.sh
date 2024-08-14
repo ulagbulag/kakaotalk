@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2023 Ho Kim (ho.kim@ulagbulag.io). All rights reserved.
+# Copyright (c) 2023-2024 Ho Kim (ho.kim@ulagbulag.io). All rights reserved.
 # Use of this source code is governed by The Unlicense license that can be
 # found in the LICENSE file.
 
@@ -30,4 +30,4 @@ function _install_local() {
 }
 
 # Execute main function
-_install_local "$@" || exit 1
+_install_local "$@"
