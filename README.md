@@ -41,12 +41,6 @@ sudo apt-get install bash curl desktop-file-utils wine xdg-utils
 
 ### Arch Linux (아치리눅스)
 
-#### Enable `multilib` repository
-
-Open `/etc/pacman.conf` as sudo, and uncomment `[multilib]` section to enable it.
-
-NOTE: This step would not be needed when new WoW64 mode is enabled by default. (Checked on: Jan 22, 2025)
-
 #### Automatic Installation with AUR package manager (AUR 패키지 관리자를 활용한 설치)
 
 ```bash
