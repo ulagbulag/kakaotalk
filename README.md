@@ -21,7 +21,10 @@ yay -S --needed kakaotalk && kakaotalk
 - bash
 - curl
 - desktop-file-utils
+- grep
+- procps
 - wine > 8.0
+- winetricks
 - xdg-utils
 
 ### Arch Linux (아치리눅스)

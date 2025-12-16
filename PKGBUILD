@@ -25,10 +25,14 @@ license=(
 
 depends=(
     'bash'
+    'coreutils'
     'curl'
     'desktop-file-utils'
+    'grep'
     'lib32-gst-plugins-good'
+    'procps-ng'
     'wine'
+    'winetricks'
     'xdg-utils'
 )
 
