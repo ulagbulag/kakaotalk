@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2023-2024 Ho Kim (ho.kim@ulagbulag.io). All rights reserved.
+# Copyright (c) 2023-2025 Ho Kim (ho.kim@ulagbulag.io). All rights reserved.
 # Use of this source code is governed by The Unlicense license that can be
 # found in the LICENSE file.
 
@@ -69,6 +69,39 @@ function _install_wine() {
 }
 
 ###########################################################
+#   Incremental Patches                                   #
+###########################################################
+
+function _patch_wine() {
+    # Patch #5: Install CJK fonts if not exists
+    # Issue: https://github.com/ulagbulag/kakaotalk/issues/5
+    if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -Posq '^cjkfonts$'; then
+        winetricks --optout --unattended corefonts cjkfonts
+    fi
+
+    # Patch #5: Detect and apply IME-dependent environment variables
+    # Issue: https://github.com/ulagbulag/kakaotalk/issues/5
+    if ! echo "x${XMODIFIERS}" | grep -Posq '^x\*?@im='; then
+        # Probe current IME (alphabetical order)
+        im=''
+        if pgrep fcitx >/dev/null; then
+            im='fcitx'
+        elif pgrep ibus >/dev/null; then
+            im='ibus'
+        elif pgrep kime >/dev/null; then
+            im='kime'
+        elif pgrep nimf >/dev/null; then
+            im='nimf'
+        fi
+
+        # Apply
+        if [ "x${im}" != 'x' ]; then
+            export XMODIFIERS="@im=${im}"
+        fi
+    fi
+}
+
+###########################################################
 #   Executor                                              #
 ###########################################################
 
@@ -96,6 +129,9 @@ function main() {
     if ! _check_wine "${WINE_EXE}"; then
         _install_wine "${WINE_EXE}"
     fi
+
+    # Patch
+    _patch_wine
 
     # Exec
     _exec_wine "${WINE_EXE}"
