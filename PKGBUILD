@@ -19,8 +19,8 @@ source=(
 url='https://www.kakaocorp.com/page/service/service/KakaoTalk'
 
 license=(
-    'custom:kakaotalk'
-    'unlicense'
+    'LicenseRef-KakaoTalk'
+    'Unlicense'
 )
 
 depends=(
