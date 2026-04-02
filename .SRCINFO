@@ -1,12 +1,12 @@
 pkgbase = kakaotalk
 	pkgdesc = A mobile messaging app for smartphones operated by Kakao Corporation in South Korea
 	pkgver = 0.1.0
-	pkgrel = 5
+	pkgrel = 6
 	url = https://www.kakaocorp.com/page/service/service/KakaoTalk
 	arch = i686
 	arch = x86_64
-	license = custom:kakaotalk
-	license = unlicense
+	license = LicenseRef-KakaoTalk
+	license = Unlicense
 	depends = bash
 	depends = curl
 	depends = desktop-file-utils
