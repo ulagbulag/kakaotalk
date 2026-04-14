@@ -2,7 +2,7 @@
 
 pkgname='kakaotalk'
 pkgver=0.1.0
-pkgrel=6
+pkgrel=7
 pkgdesc='A mobile messaging app for smartphones operated by Kakao Corporation in South Korea'
 arch=(
     'i686'
