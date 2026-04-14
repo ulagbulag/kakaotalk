@@ -23,9 +23,15 @@ yay -S --needed kakaotalk && kakaotalk
 - desktop-file-utils
 - grep
 - procps
-- wine > 8.0
+- wine > 11.0
 - winetricks
 - xdg-utils
+
+For multimedia playback support, also install the following optional dependencies:  
+동영상 재생 등의 기능을 이용하시려면 아래 패키지도 추가로 설치하세요:
+
+- gst-plugins-good
+- gst-plugins-bad
 
 ### Arch Linux (아치리눅스)
 
