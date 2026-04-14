@@ -23,7 +23,7 @@ yay -S --needed kakaotalk && kakaotalk
 - desktop-file-utils
 - grep
 - procps
-- wine > 11.0
+- wine >= 11.0
 - winetricks
 - xdg-utils
 

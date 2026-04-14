@@ -30,7 +30,7 @@ depends=(
     'desktop-file-utils'
     'grep'
     'procps-ng'
-    'wine>11'
+    'wine>=11'
     'winetricks'
     'xdg-utils'
 )

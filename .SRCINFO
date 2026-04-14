@@ -13,7 +13,7 @@ pkgbase = kakaotalk
 	depends = desktop-file-utils
 	depends = grep
 	depends = procps-ng
-	depends = wine>11
+	depends = wine>=11
 	depends = winetricks
 	depends = xdg-utils
 	optdepends = gst-plugins-good: for multimedia playback support
