@@ -29,11 +29,15 @@ depends=(
     'curl'
     'desktop-file-utils'
     'grep'
-    'lib32-gst-plugins-good'
     'procps-ng'
-    'wine'
+    'wine>11'
     'winetricks'
     'xdg-utils'
+)
+
+optdepends=(
+    'gst-plugins-good: for multimedia playback support'
+    'gst-plugins-bad: for multimedia playback support'
 )
 
 sha256sums=(
