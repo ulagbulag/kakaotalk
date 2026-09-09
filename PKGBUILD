@@ -2,7 +2,7 @@
 
 pkgname='kakaotalk'
 pkgver=0.1.0
-pkgrel=8
+pkgrel=9
 pkgdesc='A mobile messaging app for smartphones operated by Kakao Corporation in South Korea'
 arch=(
     'i686'
@@ -14,6 +14,7 @@ source=(
     'kakaotalk'
     'kakaotalk.desktop'
     'kakaotalk.png'
+    'input-guard.c'
 )
 
 url='https://www.kakaocorp.com/page/service/service/KakaoTalk'
@@ -40,13 +41,20 @@ optdepends=(
     'gst-plugins-bad: for multimedia playback support'
 )
 
+makedepends=('libx11' 'xorgproto')
+
 sha256sums=(
     'SKIP'
     '6b0382b16279f26ff69014300541967a356a666eb0b91b422f6862f6b7dad17e'
-    '80ef75d657ab2863f7e18d3062ad0fd9da17a4ae5132f261e3d485ef1cc71a72'
+    '03717b2aa59b80a36689332bf63e09bb030064a6f1fcf3a23f825b3ecc8cc241'
     '5a62e97dc447a0740d92327264c538857f371f29aa8c1adbadafe6a38f835005'
     'bc6102b626e970adb084f8eb84cebef02ee189ea4e84857b6535b9c524c2872c'
+    'aa09a80a405e11eaafa7bdaf920e063052194199e7ba7c6447bda8563bb087e7'
 )
+
+build() {
+    cc ${CFLAGS} -fPIC -shared -o input-guard.so input-guard.c ${LDFLAGS} -ldl
+}
 
 update_desktop() {
     xdg-icon-resource forceupdate --theme hicolor &>/dev/null
@@ -67,6 +75,7 @@ post_remove() {
 
 package() {
     install -Dm755 -t "${pkgdir}/usr/bin" "${srcdir}/kakaotalk"
+    install -Dm755 "${srcdir}/input-guard.so" "${pkgdir}/usr/lib/kakaotalk/input-guard.so"
     install -Dm644 -t "${pkgdir}/usr/share/applications" "${srcdir}/kakaotalk.desktop"
     install -Dm644 -t "${pkgdir}/usr/share/icons/hicolor/256x256/apps" "${srcdir}/kakaotalk.png"
     install -Dm644 -t "${pkgdir}/usr/share/licenses/kakaotalk" "${srcdir}/LICENSE"

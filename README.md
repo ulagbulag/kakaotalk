@@ -98,6 +98,32 @@ kakaotalk
 
 Application Finder -> Search KakaoTalk (카카오톡) -> Open
 
+### Mouse input and window focus (마우스 입력과 창 포커스)
+
+The launcher loads a small Wine/X11 helper to keep global raw mouse events
+from other applications out of KakaoTalk. This prevents background chat
+windows from reacting to clicks, right-clicks, and scrolling in another
+window, including focus jumps when switching between multiple applications.
+Mouse input over KakaoTalk and ongoing drags are preserved.
+
+다른 앱에서 발생한 클릭·우클릭·휠 입력이 카카오톡 채팅창으로 전달되어
+포커스를 빼앗는 문제를 보정합니다. 카카오톡 창 위에서의 마우스 입력과
+드래그는 유지됩니다.
+
+The helper applies to Wine's X11 event loop launched by this script. Native
+applications, keyboard events, and window-manager activation requests are
+unchanged. Existing `LD_PRELOAD` entries are preserved. To disable the helper
+for a launch, run `KAKAOTALK_INPUT_FIX=0 kakaotalk`.
+
+For the non-AUR installer, a C compiler and Xlib/XInput development headers are
+needed (Debian/Ubuntu: `build-essential libx11-dev libxi-dev`). AUR builds use
+`base-devel` and the declared build dependencies.
+
+Run `bash tests/input-guard.sh` to test in an isolated Xvfb display. The tests
+exercise real XInput2 mouse events, core events, drags, and an unaffected
+native caller. On Arch, install `xorg-server-xvfb`, `libxi`, and `libxtst` to
+run them. The tests do not move the pointer on your desktop.
+
 ## Uninstallation (삭제법)
 
 ### KakaoTalk (카카오톡)
