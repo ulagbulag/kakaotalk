@@ -98,6 +98,33 @@ kakaotalk
 
 Application Finder -> Search KakaoTalk (카카오톡) -> Open
 
+## Invisible chats or incorrect click positions (채팅창 표시 및 클릭 위치 복구)
+
+If chats open as invisible or tiny windows, or clicks land in the wrong place,
+Wine may be holding stale monitor information. Closing and reopening KakaoTalk
+alone can reuse that Wine session. Save any work in applications using
+KakaoTalk's Wine prefix, then run:
+
+채팅창이 보이지 않거나 아주 작게 열리고, 클릭 위치도 어긋난다면 Wine에 잘못된
+모니터 정보가 남아 있을 수 있습니다. 카카오톡만 다시 실행해도 같은 Wine 세션을
+재사용할 수 있습니다. 카카오톡 전용 Wine 환경에서 작업 중인 내용을 저장한 뒤 실행하세요.
+
+```bash
+kakaotalk --recover-display
+```
+
+This cleanly shuts down all applications in `~/.local/share/kakaotalk`, waits
+for its Wine server to exit, and opens KakaoTalk again with fresh display
+information. Chat data and settings are preserved. If shutdown fails or takes
+too long, the command stops; close any pending Wine dialogs and retry.
+Other Wine prefixes are unaffected. Normal launches do not restart the session.
+
+`~/.local/share/kakaotalk`에 속한 프로그램을 정상 종료하고 Wine 서버가 끝날 때까지
+기다린 뒤, 화면 정보를 새로 읽어 카카오톡을 실행합니다. 대화 데이터와 설정은
+유지됩니다. 종료에 실패하거나 시간이 초과되면 중단하므로, Wine의 확인 창이
+남아 있다면 처리한 뒤 다시 실행하세요. 다른 Wine 환경에는 영향을 주지 않으며,
+평소 실행 시에는 세션을 재시작하지 않습니다.
+
 ## Uninstallation (삭제법)
 
 ### KakaoTalk (카카오톡)

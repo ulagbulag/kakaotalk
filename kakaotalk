@@ -105,6 +105,20 @@ function _patch_wine() {
 #   Executor                                              #
 ###########################################################
 
+function _recover_wine_display() {
+    echo 'Restarting the KakaoTalk Wine session to refresh display information...'
+    # Reopening KakaoTalk alone can reuse stale monitor information held by
+    # Wine. End this prefix's session cleanly and wait before launching again.
+    if ! timeout --foreground 30s wineboot --end-session --shutdown; then
+        echo 'Wine did not shut down cleanly. Close any pending Wine dialogs and retry.' >&2
+        return 1
+    fi
+    if ! timeout --foreground 30s wineserver --wait; then
+        echo 'The KakaoTalk Wine session is still running. Close its applications and retry.' >&2
+        return 1
+    fi
+}
+
 function _exec_wine() {
     WINE_EXE="$1"
 
@@ -118,6 +132,20 @@ function _exec_wine() {
 
 # Define a main function
 function main() {
+    case "${1:-}" in
+        --help|-h)
+            cat <<'EOF'
+Usage: kakaotalk [--recover-display]
+
+  --recover-display  Cleanly restart the KakaoTalk Wine session and reopen
+                     KakaoTalk to recover invisible chats or offset clicks.
+                     This closes all applications in its dedicated Wine prefix.
+  --help, -h         Show this help.
+EOF
+            return
+            ;;
+    esac
+
     # Configure environment variables
     export LANG='ko_KR.UTF-8'
     export LC_ALL='ko_KR.UTF-8'
@@ -126,6 +154,17 @@ function main() {
 
     # Install
     WINE_EXE="${WINEPREFIX}/drive_c/Program Files (x86)/Kakao/KakaoTalk/KakaoTalk.exe"
+    if [ "${1:-}" = '--recover-display' ]; then
+        if [ "$#" -ne 1 ]; then
+            echo 'Usage: kakaotalk --recover-display' >&2
+            return 1
+        fi
+        if ! _check_wine "${WINE_EXE}"; then
+            echo 'KakaoTalk is not installed. Run kakaotalk first.' >&2
+            return 1
+        fi
+        _recover_wine_display
+    fi
     if ! _check_wine "${WINE_EXE}"; then
         _install_wine "${WINE_EXE}"
     fi
