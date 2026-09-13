@@ -2,7 +2,7 @@
 
 pkgname='kakaotalk'
 pkgver=0.1.0
-pkgrel=9
+pkgrel=8
 pkgdesc='A mobile messaging app for smartphones operated by Kakao Corporation in South Korea'
 arch=(
     'i686'
@@ -43,7 +43,7 @@ optdepends=(
 sha256sums=(
     'SKIP'
     '6b0382b16279f26ff69014300541967a356a666eb0b91b422f6862f6b7dad17e'
-    '1b3a18f5a3fdd6377766d009b2c492d3d588089300c5328a411ba71fd3e8e68d'
+    '80ef75d657ab2863f7e18d3062ad0fd9da17a4ae5132f261e3d485ef1cc71a72'
     '5a62e97dc447a0740d92327264c538857f371f29aa8c1adbadafe6a38f835005'
     'bc6102b626e970adb084f8eb84cebef02ee189ea4e84857b6535b9c524c2872c'
 )
