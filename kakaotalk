@@ -97,6 +97,15 @@ function _patch_wine() {
         # Apply
         if [ "x${im}" != 'x' ]; then
             export XMODIFIERS="@im=${im}"
+
+            # Patch #2: ibus delivers preedit/commit asynchronously, which
+            # races with Wine's XIM client and crashes KakaoTalk on Korean
+            # composition (alphabet, which needs no composition, is fine).
+            # Synchronous mode serializes the events and stops the crash.
+            # Issue: https://github.com/ulagbulag/kakaotalk/issues/2
+            if [ "${im}" = 'ibus' ]; then
+                export IBUS_ENABLE_SYNC_MODE=1
+            fi
         fi
     fi
 }
