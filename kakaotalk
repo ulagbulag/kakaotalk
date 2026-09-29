@@ -108,6 +108,21 @@ function _patch_wine() {
             fi
         fi
     fi
+
+    # Patch #14: Refresh monitor information before a new KakaoTalk session.
+    # Wine can retain stale monitor geometry after KakaoTalk exits, resulting
+    # in invisible chat windows and offset clicks when it is opened again.
+    # Leave an already-running KakaoTalk alone, including another Wine prefix.
+    if ! pgrep -u "${UID}" -x 'KakaoTalk[.]exe' >/dev/null; then
+        if ! timeout --foreground 30s wineboot --end-session --shutdown; then
+            echo 'Wine did not shut down cleanly. Close any pending Wine dialogs and retry.' >&2
+            return 1
+        fi
+        if ! timeout --foreground 30s wineserver --wait; then
+            echo 'The KakaoTalk Wine session is still running. Close its applications and retry.' >&2
+            return 1
+        fi
+    fi
 }
 
 ###########################################################
