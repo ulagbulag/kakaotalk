@@ -1,0 +1,107 @@
+---
+name: Bug report
+description: Report a problem running KakaoTalk on Linux. / 리눅스에서 카카오톡 실행 중 발생한 문제를 신고합니다.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill in the environment so we can reproduce the problem.
+        문제를 재현할 수 있도록 아래 환경 정보를 채워 주세요.
+
+  - type: input
+    id: os
+    attributes:
+      label: Distribution and version
+      description: 배포판과 버전
+      placeholder: Arch Linux · Fedora 44 · Ubuntu 24.04 · EndeavourOS
+    validations:
+      required: true
+
+  - type: input
+    id: desktop
+    attributes:
+      label: Desktop environment
+      description: 데스크탑 환경
+      placeholder: KDE Plasma 6.7 · GNOME 46 · Xfce · Hyprland · niri
+    validations:
+      required: true
+
+  - type: dropdown
+    id: display-server
+    attributes:
+      label: Display server
+      description: 디스플레이 서버
+      options:
+        - Wayland
+        - X11 (Xorg)
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: wine
+    attributes:
+      label: Wine version
+      description: Output of `wine --version`; note Staging or WineHQ if used. / `wine --version` 결과
+      placeholder: wine-11.0 (Staging)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ime
+    attributes:
+      label: Korean input method (IME)
+      description: 한글 입력기
+      options:
+        - fcitx5
+        - fcitx (4)
+        - ibus
+        - kime
+        - nimf
+        - uim
+        - None or other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: symptoms
+    attributes:
+      label: Symptoms
+      description: Select all that apply. / 해당하는 항목을 모두 선택하세요.
+      options:
+        - label: Korean input does not work (한글 입력이 안 됨)
+        - label: Korean input crashes the app (한글 입력 시 튕김)
+        - label: Broken fonts, tofu boxes ㅁㅁ (폰트 깨짐)
+        - label: Emoji not shown (이모지가 안 보임)
+        - label: Mouse or focus problem (마우스·포커스 문제)
+        - label: Wrong window size or invisible window (창 크기·표시 문제)
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead? / 기대한 동작과 실제 동작
+      placeholder: When I type Korean in a chat window, KakaoTalk closes immediately.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: 재현 방법
+      placeholder: |
+        1. Install with `./install.sh`
+        2. Run `kakaotalk`
+        3. Open a chat and type Korean
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Logs, screenshots, extra context
+      description: Installed Korean fonts, `kakaotalk` terminal output, screenshots, etc. / 로그·스크린샷·추가 정보
+    validations:
+      required: false
