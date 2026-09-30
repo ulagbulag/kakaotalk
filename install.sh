@@ -19,6 +19,10 @@ function _install_local() {
     fi
     srcdir=$(pwd)
 
+    # Build the Wine mouse input workaround (requires a C compiler and Xlib headers).
+    "${CC:-cc}" -O2 -fPIC -shared -o "${srcdir}/input-guard.so" \
+        "${srcdir}/input-guard.c" -ldl
+
     # Download terms
     curl -s 'https://t1.kakaocdn.net/kakaocorp/pw/policy/files/20260221/%EC%B9%B4%EC%B9%B4%EC%98%A4%20%EC%84%9C%EB%B9%84%EC%8A%A4%20%EC%95%BD%EA%B4%80_20260221_F.pdf' -o 'terms.pdf'
 
@@ -29,6 +33,7 @@ function _install_local() {
 
     # Local-install
     install -Dm755 -t "${pkgdir}/bin" "${srcdir}/kakaotalk"
+    install -Dm755 "${srcdir}/input-guard.so" "${pkgdir}/lib/kakaotalk/input-guard.so"
     install -Dm644 -t "${pkgdir}/share/applications" -S "$(basename "${srcfile}")" "${tgtfile}"
     install -Dm644 -t "${pkgdir}/share/icons/hicolor/256x256/apps" "${srcdir}/kakaotalk.png"
     install -Dm644 -t "${pkgdir}/share/licenses/kakaotalk" "${srcdir}/terms.pdf"

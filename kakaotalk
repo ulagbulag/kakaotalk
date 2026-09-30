@@ -133,6 +133,12 @@ function _exec_wine() {
     WINE_EXE="$1"
 
     echo 'Executing Kakaotalk...'
+    # Prevent Wine from forwarding other applications' raw mouse input to KakaoTalk.
+    local input_helper
+    input_helper="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/kakaotalk/input-guard.so"
+    if [ "${KAKAOTALK_INPUT_FIX:-1}" != '0' ] && [ -f "${input_helper}" ]; then
+        export LD_PRELOAD="${input_helper}${LD_PRELOAD:+:${LD_PRELOAD}}"
+    fi
     exec wine "${WINE_EXE}"
 }
 
