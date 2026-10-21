@@ -26,6 +26,7 @@ yay -S --needed kakaotalk && kakaotalk
 - wine >= 11.0
 - winetricks
 - xdg-utils
+- xrdb
 
 For multimedia playback support, also install the following optional dependencies:  
 동영상 재생 등의 기능을 이용하시려면 아래 패키지도 추가로 설치하세요:
@@ -36,14 +37,14 @@ For multimedia playback support, also install the following optional dependencie
 ### Arch Linux (아치리눅스)
 
 ```bash
-sudo pacman -S bash curl desktop-file-utils wine xdg-utils
+sudo pacman -S bash curl desktop-file-utils wine xdg-utils xorg-xrdb
 ```
 
 ### Debian / Ubuntu (데비안 / 우분투)
 
 ```bash
 sudo apt-get update
-sudo apt-get install bash curl desktop-file-utils wine xdg-utils
+sudo apt-get install bash curl desktop-file-utils wine xdg-utils x11-xserver-utils
 ```
 
 ## Installation (설치하기)
@@ -97,6 +98,32 @@ kakaotalk
 ### Xfce
 
 Application Finder -> Search KakaoTalk (카카오톡) -> Open
+
+## Display Scaling (화면 배율)
+
+`kakaotalk` detects the display scale on every launch and applies it as the Wine DPI.
+With the default Wine X11 driver (also on XWayland) it follows the `Xft.dpi` X resource, which is read with `xrdb` (or `xprop` as a fallback).
+With the Wine Wayland driver it follows the compositor scale (GNOME, KDE Plasma, Hyprland, Sway).
+You can override it with environment variables:
+
+`kakaotalk`은 실행할 때마다 화면 배율을 감지해 Wine DPI로 적용합니다.
+기본 Wine X11 드라이버(XWayland 포함)에서는 `xrdb`(없으면 `xprop`)로 읽은 `Xft.dpi` 값을, Wine Wayland 드라이버에서는 컴포지터 배율(GNOME, KDE Plasma, Hyprland, Sway)을 따릅니다.
+아래 환경 변수로 직접 조절할 수 있습니다:
+
+```bash
+# Use a fixed DPI (96 = 100%, 120 = 125%, 144 = 150%, 192 = 200%)
+KAKAOTALK_DPI=144 kakaotalk
+
+# Scale the detected DPI (e.g. 10% larger)
+KAKAOTALK_DPI_SCALE=1.1 kakaotalk
+
+# Keep the DPI configured with `winecfg`
+KAKAOTALK_DPI=off kakaotalk
+```
+
+When the DPI changes, the saved main window size is reset so that KakaoTalk does not open larger than the screen.
+
+DPI가 바뀌면 카카오톡 창이 화면보다 크게 열리지 않도록 저장된 메인 창 크기를 초기화합니다.
 
 ## Uninstallation (삭제법)
 

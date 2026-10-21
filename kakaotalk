@@ -72,11 +72,271 @@ function _install_wine() {
 #   Incremental Patches                                   #
 ###########################################################
 
+# Print the Wine graphics driver that will render KakaoTalk: "x11", "wayland"
+# or nothing. Wine tries the drivers listed in HKCU\Software\Wine\Drivers
+# "Graphics" in order (default: x11 first, then wayland) and uses the first
+# one whose display server is reachable.
+function _detect_wine_driver() {
+    local drivers=''
+    local driver=''
+
+    drivers="$(
+        awk -F'"' '
+            /^\[Software\\\\Wine\\\\Drivers\]/ { found = 1; next }
+            /^\[/ { found = 0 }
+            found && $2 == "Graphics" { print $4; exit }
+        ' "${WINEPREFIX}/user.reg" 2>/dev/null || true
+    )"
+    for driver in $(printf '%s' "${drivers:-x11,wayland}" | tr ',' ' '); do
+        case "${driver}" in
+        x11)
+            if [ -n "${DISPLAY}" ]; then
+                echo 'x11'
+                return
+            fi
+            ;;
+        wayland)
+            if [ -n "${WAYLAND_DISPLAY}" ] || [ -S "${XDG_RUNTIME_DIR:-/nonexistent}/wayland-0" ]; then
+                echo 'wayland'
+                return
+            fi
+            ;;
+        esac
+    done
+}
+
+# Print the Xft.dpi X resource (integer), or nothing when it is not set.
+function _detect_xft_dpi() {
+    local dpi=''
+
+    if command -v xrdb >/dev/null 2>&1; then
+        dpi="$(xrdb -query 2>/dev/null | awk '/^[Xx]ft\.[Dd]pi:/ { print $2; exit }' || true)"
+    elif command -v xprop >/dev/null 2>&1; then
+        dpi="$(
+            xprop -root RESOURCE_MANAGER 2>/dev/null \
+                | grep -oE '[Xx]ft\.[Dd]pi:(\\t|[[:space:]])*[0-9.]+' \
+                | grep -oE '[0-9.]+$' \
+                | head -n1 \
+                || true
+        )"
+    else
+        echo 'Neither xrdb nor xprop is installed, so the X11 display scale cannot be detected.' >&2
+        echo 'Install xrdb (Arch: xorg-xrdb, Debian/Ubuntu: x11-xserver-utils) for HiDPI support.' >&2
+    fi
+    printf '%s' "${dpi%.*}"
+}
+
+# Print the scale factor of the host monitors as reported by the Wayland
+# compositor, or nothing when it cannot be detected. Wine applies a single
+# process-wide DPI and cannot follow the monitor a window is on, so pick the
+# focused monitor where the compositor exposes one (Hyprland, Sway), and the
+# highest scale otherwise (KDE Plasma, GNOME), so KakaoTalk is never tiny on
+# the HiDPI screen of a mixed setup.
+function _detect_wayland_scale() {
+    local scale=''
+
+    # Hyprland
+    if [ -z "${scale}" ] && [ -n "${HYPRLAND_INSTANCE_SIGNATURE}" ] && command -v hyprctl >/dev/null 2>&1; then
+        scale="$(
+            hyprctl monitors 2>/dev/null | awk '
+                /^Monitor/ { s = "" }
+                $1 == "scale:" { s = $2 }
+                $1 == "focused:" && $2 == "yes" { print s; exit }
+            ' || true
+        )"
+    fi
+
+    # Sway
+    if [ -z "${scale}" ] && [ -n "${SWAYSOCK}" ] && command -v swaymsg >/dev/null 2>&1; then
+        scale="$(
+            swaymsg -p -t get_outputs 2>/dev/null | awk '
+                /^Output / { focused = ($0 ~ /\(focused\)/) }
+                focused && /Scale factor:/ { print $3; exit }
+            ' || true
+        )"
+    fi
+
+    # KDE Plasma (kscreen-doctor colours its output, so strip ANSI escapes)
+    if [ -z "${scale}" ] && command -v kscreen-doctor >/dev/null 2>&1; then
+        scale="$(
+            kscreen-doctor -o 2>/dev/null \
+                | sed 's/\x1b\[[0-9;]*m//g' \
+                | grep -oiE 'scale:[[:space:]]*[0-9.]+' \
+                | grep -oE '[0-9.]+' \
+                | sort -gr \
+                | head -n1 \
+                || true
+        )"
+    fi
+
+    # GNOME (Mutter): query DisplayConfig over D-Bus, which also reports
+    # fractional scales that no gsetting exposes reliably. Each logical
+    # monitor is a (x, y, scale, transform, primary, [monitors], props) tuple;
+    # gdbus prints transform as "uint32 N" or just "N", so accept both.
+    if [ -z "${scale}" ] && command -v gdbus >/dev/null 2>&1; then
+        scale="$(
+            gdbus call --session \
+                --dest org.gnome.Mutter.DisplayConfig \
+                --object-path /org/gnome/Mutter/DisplayConfig \
+                --method org.gnome.Mutter.DisplayConfig.GetCurrentState 2>/dev/null \
+                | grep -oE '\([0-9]+, [0-9]+, [0-9.]+, (uint32 )?[0-9]+, (true|false), \[\(' \
+                | awk -F', ' '{ print $3 }' \
+                | sort -gr \
+                | head -n1 \
+                || true
+        )"
+    fi
+
+    printf '%s' "${scale}"
+}
+
+# Print the DPI that makes KakaoTalk match the host scale, or nothing when it
+# cannot be determined. Every probe is guarded so this never aborts under
+# `set -e -o pipefail`.
+function _detect_host_dpi() {
+    local dpi=''
+    local scale=''
+    local text_scale=''
+
+    case "$(_detect_wine_driver)" in
+    x11)
+        # X11 clients, including those on XWayland, scale themselves by the
+        # Xft.dpi resource. Desktops that expect X11 clients to scale
+        # themselves publish it: X11 sessions of GNOME, KDE Plasma and Xfce,
+        # GNOME on Wayland (Mutter runs XWayland at 1x or 2x and sets 96 or
+        # 192) and KDE Plasma on Wayland with "Apply scaling themselves".
+        # GNOME already folds text-scaling-factor into Xft.dpi.
+        dpi="$(_detect_xft_dpi)"
+
+        # Hyprland with xwayland:force_zero_scaling leaves X11 clients
+        # unscaled and does not publish Xft.dpi, so fall back to the monitor
+        # scale there.
+        if [ -z "${dpi}" ] && [ -n "${HYPRLAND_INSTANCE_SIGNATURE}" ] \
+            && hyprctl getoption xwayland:force_zero_scaling 2>/dev/null \
+                | grep -qE '^[[:space:]]*int:[[:space:]]*1[[:space:]]*$'; then
+            scale="$(_detect_wayland_scale)"
+        fi
+
+        # Otherwise the X server is unscaled, or the compositor already
+        # upscales X11 clients (default Hyprland and Sway, KDE Plasma "Scaled
+        # by the system"); applying the monitor scale again would double it.
+        # 96 DPI is right in both cases.
+        if [ -z "${dpi}" ] && [ -z "${scale}" ]; then
+            dpi=96
+        fi
+        ;;
+    wayland)
+        # Wine's Wayland driver renders at the DPI in the registry, so it
+        # needs the compositor scale.
+        scale="$(_detect_wayland_scale)"
+
+        # GNOME's text-scaling-factor is an extra multiplier for text only.
+        if [ "${XDG_CURRENT_DESKTOP#*GNOME}" != "${XDG_CURRENT_DESKTOP}" ] \
+            && command -v gsettings >/dev/null 2>&1; then
+            text_scale="$(gsettings get org.gnome.desktop.interface text-scaling-factor 2>/dev/null || true)"
+        fi
+        if printf '%s' "${text_scale}" | grep -qE '^[0-9]+([.][0-9]+)?$'; then
+            scale="$(awk "BEGIN { print ${scale:-1} * ${text_scale} }" 2>/dev/null || true)"
+        fi
+        ;;
+    esac
+
+    # Convert a detected scale into DPI.
+    if [ -z "${dpi}" ] && printf '%s' "${scale}" | grep -qE '^[0-9]+([.][0-9]+)?$'; then
+        dpi="$(awk "BEGIN { d = int(${scale} * 96 + 0.5); if (d > 0) print d }" 2>/dev/null || true)"
+    fi
+
+    # Validate: print only a positive integer, otherwise print nothing.
+    if printf '%s' "${dpi}" | grep -qE '^[0-9]+$' && [ "${dpi}" -gt 0 ]; then
+        printf '%s' "${dpi}"
+    fi
+}
+
+# Forget the main window geometry KakaoTalk saved at the previous DPI.
+# KakaoTalk restores it scaled by the new DPI, so after a DPI increase the
+# window can open larger than the screen; the window manager then shrinks it
+# and Wine loses track of the real geometry, which breaks clicks and resizing.
+# KakaoTalk falls back to its default size when the entry is missing.
+# Skipped while KakaoTalk is running, since it rewrites the file on exit.
+function _reset_window_geometry() {
+    local pref=''
+
+    if pgrep -u "${UID}" -x 'KakaoTalk[.]exe' >/dev/null 2>&1; then
+        return
+    fi
+    for pref in "${WINEPREFIX}"/drive_c/users/*/AppData/Local/Kakao/KakaoTalk/users/*/user_pref.ini; do
+        if [ -f "${pref}" ] && grep -q '^main_wnd_last_pos_v2 = ' "${pref}"; then
+            sed -i '/^main_wnd_last_pos_v2 = /d' "${pref}" || true
+        fi
+    done
+}
+
+# Print the DPI currently stored in the Wine registry, or nothing.
+function _get_wine_dpi() {
+    local hex=''
+
+    hex="$(
+        awk -F'=' '
+            /^\[Control Panel\\\\Desktop\]/ { found = 1; next }
+            /^\[/ { found = 0 }
+            found && $1 == "\"LogPixels\"" { sub(/^dword:/, "", $2); print $2; exit }
+        ' "${WINEPREFIX}/user.reg" 2>/dev/null || true
+    )"
+    if printf '%s' "${hex}" | grep -qE '^[0-9a-fA-F]{8}$'; then
+        printf '%d' "0x${hex}"
+    fi
+}
+
 function _patch_wine() {
     # Patch #5: Install CJK fonts if not exists
     # Issue: https://github.com/ulagbulag/kakaotalk/issues/5
     if ! cat "${WINEPREFIX}/winetricks.log" 2>/dev/null | grep -Posq '^cjkfonts$'; then
         winetricks --optout --unattended corefonts cjkfonts
+    fi
+
+    # Patch: Apply the host display scale to Wine on every launch.
+    # Wine does not follow the host scale, so KakaoTalk renders too small on
+    # HiDPI screens, and the right DPI changes with docking or monitor
+    # changes. Detect it at launch and write it to the Wine registry before
+    # KakaoTalk starts.
+    #
+    #   KAKAOTALK_DPI=<n>         use <n> DPI as-is (no detection)
+    #   KAKAOTALK_DPI=off         keep the DPI configured in winecfg
+    #   KAKAOTALK_DPI_SCALE=<f>   multiply the detected DPI (default 1.0)
+    #
+    # When detection fails, the registry is left untouched. When the DPI
+    # changes, the saved main window geometry is reset (see
+    # _reset_window_geometry).
+    host_dpi=''
+    case "${KAKAOTALK_DPI:-auto}" in
+    off)
+        ;;
+    auto)
+        echo 'Detecting current display scaling...'
+        host_dpi="$(_detect_host_dpi || true)"
+        dpi_scale="${KAKAOTALK_DPI_SCALE:-1.0}"
+        if [ -n "${host_dpi}" ] && printf '%s' "${dpi_scale}" | grep -qE '^[0-9]+([.][0-9]+)?$'; then
+            host_dpi="$(awk "BEGIN { d = int(${host_dpi} * ${dpi_scale} + 0.5); if (d > 0) print d }" 2>/dev/null || true)"
+        fi
+        ;;
+    *)
+        host_dpi="${KAKAOTALK_DPI}"
+        ;;
+    esac
+    if [ -n "${host_dpi}" ]; then
+        if printf '%s' "${host_dpi}" | grep -qE '^[0-9]+$' \
+            && [ "${host_dpi}" -ge 48 ] && [ "${host_dpi}" -le 480 ]; then
+            echo "-> Applied DPI: ${host_dpi}"
+            prev_dpi="$(_get_wine_dpi)"
+            if [ "${prev_dpi}" != "${host_dpi}" ]; then
+                wine reg add 'HKEY_CURRENT_USER\Control Panel\Desktop' /v LogPixels /t REG_DWORD /d "${host_dpi}" /f >/dev/null 2>&1 || true
+                if [ -n "${prev_dpi}" ]; then
+                    _reset_window_geometry
+                fi
+            fi
+        else
+            echo "-> Ignoring invalid DPI: ${host_dpi} (expected 48-480)" >&2
+        fi
     fi
 
     # Patch #5: Detect and apply IME-dependent environment variables

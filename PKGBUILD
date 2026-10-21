@@ -33,6 +33,7 @@ depends=(
     'wine>=11'
     'winetricks'
     'xdg-utils'
+    'xorg-xrdb'
 )
 
 optdepends=(
